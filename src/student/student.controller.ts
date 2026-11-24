@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { StudentService } from './student.service';
@@ -18,13 +27,13 @@ export class StudentController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.studentService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.studentService.findOne(id);
   }
 
   @Get('usuario/:idUsuario')
-  findByUserId(@Param('idUsuario') idUsuario: string) {
-    return this.studentService.findByUserId(+idUsuario);
+  findByUserId(@Param('idUsuario', ParseIntPipe) idUsuario: number) {
+    return this.studentService.findByUserId(idUsuario);
   }
 
   @Get('carrera/:carrera')
@@ -33,12 +42,15 @@ export class StudentController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
-    return this.studentService.update(+id, updateStudentDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateStudentDto: UpdateStudentDto,
+  ) {
+    return this.studentService.update(id, updateStudentDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.studentService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.studentService.remove(id);
   }
 }

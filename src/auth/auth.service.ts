@@ -31,11 +31,18 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas (correo o contraseña incorrectos)');
     }
 
+    const roles = (user.userRoles ?? [])
+      .map((userRole) => userRole.role)
+      .sort((left, right) => left.id_rol - right.id_rol);
+    const roleNames = roles.map((role) => role.nombre);
+    const legacyRole = roleNames[0] ?? null;
+
     // 4. Crear el payload del token JWT
     const payload = {
       sub: user.id_usuario,
       correo: user.correo,
-      rol: user.rol,
+      rol: legacyRole,
+      roles: roleNames,
     };
 
     // 5. Retornar el token JWT generado junto con los datos del usuario
@@ -46,7 +53,8 @@ export class AuthService {
         nombre: user.nombre,
         apellido: user.apellido,
         correo: user.correo,
-        rol: user.rol,
+        rol: legacyRole,
+        roles: roleNames,
       },
     };
   }

@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { InstitutionService } from './institution.service';
@@ -18,8 +27,8 @@ export class InstitutionController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.institutionService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.institutionService.findOne(id);
   }
 
   @Get('nombre/:nombre')
@@ -33,12 +42,15 @@ export class InstitutionController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateInstitutionDto: UpdateInstitutionDto) {
-    return this.institutionService.update(+id, updateInstitutionDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateInstitutionDto: UpdateInstitutionDto,
+  ) {
+    return this.institutionService.update(id, updateInstitutionDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.institutionService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.institutionService.remove(id);
   }
 }

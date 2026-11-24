@@ -1,21 +1,48 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Teacher } from './entities/teacher.entity';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class TeacherService {
   constructor(
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async create(createTeacherDto: CreateTeacherDto): Promise<Teacher> {
+    const user = await this.userRepository.findOneBy({
+      id_usuario: createTeacherDto.id_usuario,
+    });
+    if (!user) {
+      throw new NotFoundException(
+        `Usuario con ID ${createTeacherDto.id_usuario} no encontrado`,
+      );
+    }
+    if (
+      await this.teacherRepository.findOne({
+        where: { user: { id_usuario: user.id_usuario } },
+      })
+    ) {
+      throw new ConflictException(
+        `El usuario ${user.id_usuario} ya tiene un perfil de docente`,
+      );
+    }
     const teacher = this.teacherRepository.create({
-      ...createTeacherDto,
-      user: { id_usuario: createTeacherDto.id_usuario } as any,
+      codigo_docente: createTeacherDto.codigo_docente,
+      especialidad: createTeacherDto.especialidad,
+      titulo: createTeacherDto.titulo,
+      estado: createTeacherDto.estado,
+      user,
     });
     return await this.teacherRepository.save(teacher);
   }
@@ -56,13 +83,24 @@ export class TeacherService {
 
   async update(id_docente: number, updateTeacherDto: UpdateTeacherDto): Promise<Teacher> {
     const teacher = await this.findOne(id_docente);
-
-    if (updateTeacherDto.id_usuario) {
-      teacher.user = { id_usuario: updateTeacherDto.id_usuario } as any;
-      delete (updateTeacherDto as any).id_usuario;
+    const { id_usuario, ...teacherData } = updateTeacherDto;
+    if (id_usuario !== undefined) {
+      const user = await this.userRepository.findOneBy({ id_usuario });
+      if (!user) {
+        throw new NotFoundException(`Usuario con ID ${id_usuario} no encontrado`);
+      }
+      const existing = await this.teacherRepository.findOne({
+        where: { user: { id_usuario } },
+      });
+      if (existing && existing.id_docente !== id_docente) {
+        throw new ConflictException(
+          `El usuario ${id_usuario} ya tiene un perfil de docente`,
+        );
+      }
+      teacher.user = user;
     }
 
-    Object.assign(teacher, updateTeacherDto);
+    Object.assign(teacher, teacherData);
     return await this.teacherRepository.save(teacher);
   }
 

@@ -1,4 +1,16 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayNotEmpty,
+  ArrayUnique,
+  IsArray,
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString({ message: 'El nombre es obligatorio' })
@@ -18,10 +30,11 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'La contraseña es obligatoria' })
   password: string;
 
-  @IsString()
-  @IsOptional()
-  @IsIn(['estudiante', 'docente', 'administrador'], {
-    message: 'El rol debe ser estudiante, docente o administrador',
-  })
-  rol?: string;
+  @Type(() => Number)
+  @IsArray()
+  @ArrayNotEmpty({ message: 'Debe asignar al menos un rol' })
+  @ArrayUnique({ message: 'No se permiten roles duplicados' })
+  @IsInt({ each: true, message: 'Cada rol debe ser un ID entero' })
+  @Min(1, { each: true, message: 'Cada ID de rol debe ser positivo' })
+  roleIds: number[];
 }

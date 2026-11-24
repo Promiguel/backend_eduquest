@@ -17,4 +17,7 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3000);
   console.log('Aplicación ejecutándose en: http://localhost:3000');
 }
-bootstrap();
+bootstrap().catch((error: unknown) => {
+  console.error('No se pudo iniciar el backend EduQuest:', error);
+  process.exitCode = 1;
+});

@@ -1,5 +1,14 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { Course } from '../../course/entities/course.entity';
+import { Report } from '../../report/entities/report.entity';
 
 @Entity('docentes')
 export class Teacher {
@@ -21,4 +30,10 @@ export class Teacher {
 
   @Column({ type: 'varchar', length: 20, default: 'activo' })
   estado: string;
+
+  @OneToMany(() => Course, (course) => course.teacher)
+  courses: Course[];
+
+  @OneToMany(() => Report, (report) => report.teacher)
+  reports: Report[];
 }

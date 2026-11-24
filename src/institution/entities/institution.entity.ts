@@ -1,5 +1,7 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { Grade } from '../../grade/entities/grade.entity';
+import { Course } from '../../course/entities/course.entity';
 
 @Entity('instituciones')
 export class Institution {
@@ -23,4 +25,10 @@ export class Institution {
 
   @OneToMany(() => User, (user) => user.institution)
   users: User[];
+
+  @OneToMany(() => Grade, (grade) => grade.institution)
+  grades: Grade[];
+
+  @OneToMany(() => Course, (course) => course.institution)
+  courses: Course[];
 }

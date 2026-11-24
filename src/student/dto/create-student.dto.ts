@@ -1,7 +1,10 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateStudentDto {
-  @IsNotEmpty({ message: 'El usuario es obligatorio' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   id_usuario: number;
 
   @IsString({ message: 'El código del estudiante debe ser texto' })

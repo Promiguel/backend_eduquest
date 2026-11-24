@@ -1,0 +1,414 @@
+AUDITORIA DE CORRESPONDENCIA ER-TYPEORM-MYSQL
+EduQuest
+
+1. RESUMEN EJECUTIVO
+
+- La conexion de solo lectura a la base de datos eduquest tuvo exito. Se consulto exclusivamente INFORMATION_SCHEMA; no se leyeron registros personales ni academicos.
+- TypeORM se inicializo con synchronize:false: reconocio 34 entidades explicitas, 2 tablas de union automaticas y 86 relaciones. No encontro destinos ni propiedades inversas sin resolver.
+- MySQL contiene 13 tablas. Sus nombres, tipos, longitudes, precisiones y nulabilidad de columnas coinciden con la metadata TypeORM examinada. No se encontro deriva en esos aspectos.
+- Faltan en MySQL 21 tablas de entidades TypeORM y las dos tablas de union automaticas actividades_niveles y competencias_asignaturas.
+- Hay diferencias relevantes en el modelo de usuario/rol y faltan en TypeORM y MySQL los atributos estudiantes.id_grado, estudiantes.fecha_ingreso, instituciones.nit e instituciones.ciudad, indicados en el encargo como presentes en el ER.
+- No puedo certificar que la implementacion represente fielmente todo el diagrama: el PDF se ve a escala reducida y sus atributos y cardinalidades no se pueden leer con fiabilidad. Los puntos ambiguos quedan marcados como pendientes, no como errores demostrados.
+- Riesgo operativo: src/app.module.ts activa synchronize si DB_SYNCHRONIZE no esta definido y NODE_ENV no es production. El .env inspeccionado no define esas variables. No inicie NestJS para evitar que pudiera modificar el esquema.
+
+2. INVENTARIO DEL DIAGRAMA ER
+
+El siguiente es el inventario minimo de nombres senalados explicitamente en el encargo; no afirmo que sea exhaustivo del PDF.
+
+Usuarios y seguridad:
+USUARIO, ROL, USUARIO_ROL, INSTITUCION, ESTUDIANTE, DOCENTES.
+
+Gestion academica:
+GRADO, ASIGNATURA, UNIDAD_TEMATICA, TEMA, CURSO, INSCRIPCION, HORARIO_CURSO, COMPETENCIA, PROGRESO_COMPETENCIA.
+
+ABP:
+ACTIVIDAD, NIVEL_ACTIVIDAD, ACTIVIDAD_CURSO, ACTIVIDAD_COMPETENCIA, PROBLEMA, OPCION_RESPUESTA.
+
+Evaluacion:
+RUBRICA, CRITERIO_RUBRICA, EVALUACION, EVALUACION_CRITERIO, INTENTO_ACTIVIDAD, RESPUESTA_INTENTO.
+
+Gamificacion y analitica:
+PERFIL_GAMIFICACION, TRANSACCION_PUNTO, INSIGNIA, ESTUDIANTE_INSIGNIA, REPORTE.
+
+SCRUM:
+SPRINT, HISTORIA_USUARIO, TAREA.
+
+El encargo identifica especificamente ESTUDIANTE.id_grado y fecha_ingreso, e INSTITUCION.nit y ciudad. No pude transcribir con seguridad los demas atributos, las PK/FK de USUARIO_ROL ni todas las cardinalidades del PDF. Esos detalles quedan pendientes de confirmacion con una copia legible del diagrama.
+
+3. INVENTARIO TYPEORM
+
+Notacion: ? indica campo nullable. Las FK se indican en la columna de relaciones.
+
+Activity / actividades
+PK: id_actividad.
+Campos: nombre, descripcion?, tipo, dificultad, tiempo_limite?, intentos_maximos?, objetivo_pedagogico?, puntaje_maximo, estado, fechas de creacion/modificacion.
+Relaciones: FK opcional a rubrica; N:M con niveles; 1:N a asignaciones, problemas y asociaciones de competencia.
+Archivo: src/activity/entities/activity.entity.ts
+
+ActivityAttempt / intentos_actividad
+PK: id_intento.
+Campos: numero, fechas, tiempo, puntaje, estado, mejor intento.
+Relaciones: FK a inscripcion y asignacion de actividad; tiene respuestas.
+Archivo: src/activity-attempt/entities/activity-attempt.entity.ts
+
+ActivityCompetence / actividades_competencias
+PK compuesta: id_actividad, id_competencia.
+Campos: peso.
+Relaciones: FK a actividad y competencia.
+Archivo: src/activity-competence/entities/activity-competence.entity.ts
+
+ActivityCourse / actividades_curso
+PK: id_actividad_curso.
+Campos: fechas de asignacion/apertura/cierre, peso, estado.
+Relaciones: FK a actividad y curso; evaluaciones e intentos.
+Archivo: src/activity-course/entities/activity-course.entity.ts
+
+ActivityLevel / niveles_actividad
+PK: id_nivel.
+Campos: nombre, descripcion?, numero, puntaje, orden.
+Relaciones: N:M con actividad.
+Archivo: src/activity-level/entities/activity-level.entity.ts
+
+AnswerOption / opciones_respuesta
+PK: id_opcion.
+Campos: texto, es_correcta, orden.
+Relaciones: FK a problema.
+Archivo: src/answer-option/entities/answer-option.entity.ts
+
+AttemptResponse / respuestas_intento
+PK: id_respuesta.
+Campos: texto?, correccion, puntaje, retroalimentacion?.
+Relaciones: FK a intento, problema y opcion?; UNIQUE intento-problema.
+Archivo: src/attempt-response/entities/attempt-response.entity.ts
+
+Badge / insignias
+PK: id_insignia.
+Campos: nombre, descripcion?, imagen?, tipo, criterio JSON, puntos.
+Relaciones: 1:N a asignaciones.
+Archivo: src/badge/entities/badge.entity.ts
+
+Competence / competencias
+PK: id_competencia.
+Campos: nombre, descripcion?, tipo?, nivel_esperado?.
+Relaciones: N:M con asignaturas; 1:N a asociaciones de actividad y progreso.
+Archivo: src/competence/entities/competence.entity.ts
+
+CompetenceProgress / progreso_competencias
+PK: id_progreso.
+Campos: nivel, fecha de actualizacion.
+Relaciones: FK a estudiante y competencia; UNIQUE estudiante-competencia.
+Archivo: src/competence-progress/entities/competence-progress.entity.ts
+
+Course / cursos
+PK: id_curso.
+Campos: nombre, codigo?, periodo?, cupo?, fechas?, estado.
+Relaciones: FK a institucion, grado, asignatura y docente; 1:N a inscripciones, horarios, actividades y otros.
+Archivo: src/course/entities/course.entity.ts
+
+CourseSchedule / horarios_curso
+PK: id_horario.
+Campos: dia, hora_inicio, hora_fin, aula.
+Relaciones: FK a curso.
+Archivo: src/course-schedule/entities/course-schedule.entity.ts
+
+Enrollment / inscripciones
+PK: id_inscripcion.
+Campos: fecha_inicio, estado, nota_final?.
+Relaciones: FK a estudiante y curso.
+Archivo: src/enrollment/entities/enrollment.entity.ts
+
+Evaluation / evaluaciones
+PK: id_evaluacion.
+Campos: nota, porcentaje, retroalimentaciones, nota_modificada, fecha.
+Relaciones: FK a asignacion; 1:N a criterios.
+Archivo: src/evaluation/entities/evaluation.entity.ts
+
+EvaluationCriterion / evaluaciones_criterios
+PK compuesta: id_evaluacion, id_criterio.
+Campos: puntaje, observacion?.
+Relaciones: FK a evaluacion y criterio de rubrica.
+Archivo: src/evaluation-criterion/entities/evaluation-criterion.entity.ts
+
+GamificationProfile / perfiles_gamificacion
+PK: id_perfil.
+Campos: nivel, puntos, nivel_actual, actualizacion.
+Relaciones: 1:1 con estudiante; 1:N transacciones.
+Archivo: src/gamification-profile/entities/gamification-profile.entity.ts
+
+Grade / grados
+PK: id_grado.
+Campos: nombre, nivel_educativo?, tipo?, nivel_esperado?.
+Relaciones: FK a institucion; 1:N cursos.
+Archivo: src/grade/entities/grade.entity.ts
+
+Institution / instituciones
+PK: id_institucion.
+Campos: nombre, direccion?, telefono?, correo?, estado.
+Relaciones: 1:N usuarios, grados y cursos.
+Archivo: src/institution/entities/institution.entity.ts
+
+PointTransaction / transacciones_puntos
+PK: id_transaccion.
+Campos: tipo, monto, fecha, descripcion?.
+Relaciones: FK a perfil.
+Archivo: src/point-transaction/entities/point-transaction.entity.ts
+
+Problem / problemas
+PK: id_problema.
+Campos: enunciado, contexto?, dificultad, puntaje, orden, retroalimentacion?.
+Relaciones: FK a actividad; 1:N opciones.
+Archivo: src/problem/entities/problem.entity.ts
+
+Report / reportes
+PK: id_reporte.
+Campos: tipo, parametros JSON?, fechas.
+Relaciones: FK opcional a curso, estudiante y docente.
+Archivo: src/report/entities/report.entity.ts
+
+Role / roles
+PK: id_rol.
+Campos: nombre UNIQUE, descripcion?.
+Relaciones: 1:N usuarios.
+Archivo: src/role/entities/role.entity.ts
+
+Rubric / rubricas
+PK: id_rubrica.
+Campos: nombre, descripcion?, tipo.
+Relaciones: 1:N actividades y criterios.
+Archivo: src/rubric/entities/rubric.entity.ts
+
+RubricCriterion / criterios_rubrica
+PK: id_criterio.
+Campos: nombre, descripcion?, peso, puntaje, maximo.
+Relaciones: FK a rubrica; 1:N asociaciones con evaluacion.
+Archivo: src/rubric-criterion/entities/rubric-criterion.entity.ts
+
+ScrumTask / tareas
+PK: id_tarea.
+Campos: titulo, descripcion?, estado, prioridad, estimacion, fechas.
+Relaciones: FK a historia, sprint y responsable opcional.
+Archivo: src/scrum-task/entities/scrum-task.entity.ts
+
+Sprint / sprints
+PK: id_sprint.
+Campos: nombre, objetivo?, fechas, estado.
+Relaciones: 1:N historias y tareas.
+Archivo: src/sprint/entities/sprint.entity.ts
+
+Student / estudiantes
+PK: id_estudiante.
+Campos: codigo?, carrera?, semestre?, estado.
+Relaciones: 1:1 usuario; 1:N inscripciones, insignias, progreso, reportes; 1:1 perfil.
+Archivo: src/student/entities/student.entity.ts
+
+StudentBadge / estudiantes_insignias
+PK: id_estudiante_insignia.
+Campos: fecha_obtencion.
+Relaciones: FK a estudiante, insignia y curso; UNIQUE estudiante-insignia-curso.
+Archivo: src/student-badge/entities/student-badge.entity.ts
+
+Subject / asignaturas
+PK: id_asignatura.
+Campos: nombre, descripcion?, area?.
+Relaciones: 1:N unidades y cursos; N:M competencias.
+Archivo: src/subject/entities/subject.entity.ts
+
+Teacher / docentes
+PK: id_docente.
+Campos: codigo?, especialidad?, titulo?, estado.
+Relaciones: 1:1 usuario; 1:N cursos y reportes.
+Archivo: src/teacher/entities/teacher.entity.ts
+
+ThematicUnit / unidades_tematicas
+PK: id_unidad.
+Campos: nombre, descripcion?, orden.
+Relaciones: FK a asignatura; 1:N temas.
+Archivo: src/thematic-unit/entities/thematic-unit.entity.ts
+
+Topic / temas
+PK: id_tema.
+Campos: nombre, descripcion?, orden.
+Relaciones: FK a unidad.
+Archivo: src/topic/entities/topic.entity.ts
+
+User / usuarios
+PK: id_usuario.
+Campos: nombre, apellido?, correo UNIQUE, hash de contrasena, rol, estado, fechas.
+Relaciones: FK opcional a institucion y rol.
+Archivo: src/user/entities/user.entity.ts
+
+UserStory / historias_usuario
+PK: id_historia.
+Campos: codigo, descripcion, prioridad, criterios?, estado.
+Relaciones: FK a sprint; 1:N tareas.
+Archivo: src/user-story/entities/user-story.entity.ts
+
+4. INVENTARIO MYSQL
+
+Hay 13 tablas InnoDB, todas con PK autoincremental. ? significa nullable; AI significa autoincremental.
+
+asignaturas:
+id_asignatura int AI PK; nombre varchar(150); descripcion varchar(255)?; area varchar(100)?.
+FK: ninguna.
+
+competencias:
+id_competencia int AI PK; nombre varchar(150); descripcion varchar(255)?; tipo varchar(50)?; nivel_esperado varchar(50)?.
+FK: ninguna.
+
+cursos:
+id_curso int AI PK; nombre varchar(150); codigo_acceso varchar(50)?; periodo_academico varchar(50)?; cupo_maximo int?; fecha_inicio date?; fecha_fin date?; estado varchar(20); IDs de institucion, grado, asignatura y docente.
+FK: las cuatro apuntan a sus tablas respectivas; ON DELETE RESTRICT.
+
+docentes:
+id_docente int AI PK; codigo_docente varchar(50)?; especialidad varchar(150)?; titulo varchar(150)?; estado varchar(20); id_usuario int UNIQUE.
+FK: usuario; ON DELETE CASCADE.
+
+estudiantes:
+id_estudiante int AI PK; codigo_estudiante varchar(50)?; carrera varchar(150)?; semestre int?; estado varchar(20); id_usuario int UNIQUE.
+FK: usuario; ON DELETE CASCADE.
+
+grados:
+id_grado int AI PK; nombre varchar(100); nivel_educativo varchar(50)?; tipo varchar(50)?; nivel_esperado varchar(50)?; id_institucion int.
+FK: institucion; ON DELETE RESTRICT.
+
+horarios_curso:
+id_horario int AI PK; dia_semana varchar(20); hora_inicio time; hora_fin time; aula varchar(100); id_curso int.
+FK: curso; ON DELETE RESTRICT.
+
+inscripciones:
+id_inscripcion int AI PK; fecha_inicio date; estado varchar(20); nota_final_curso decimal(7,2)?; IDs de estudiante y curso.
+FK: estudiante y curso; ON DELETE RESTRICT.
+
+instituciones:
+id_institucion int AI PK; nombre varchar(150); direccion varchar(255)?; telefono varchar(100)?; correo varchar(150)?; estado varchar(20).
+FK: ninguna.
+
+roles:
+id_rol int AI PK; nombre varchar(50) UNIQUE; descripcion varchar(255)?.
+FK: ninguna.
+
+temas:
+id_tema int AI PK; nombre varchar(150); descripcion varchar(255)?; orden int; id_unidad int.
+FK: unidad tematica; ON DELETE RESTRICT.
+
+unidades_tematicas:
+id_unidad int AI PK; nombre varchar(150); descripcion varchar(255)?; orden int; id_asignatura int.
+FK: asignatura; ON DELETE RESTRICT.
+
+usuarios:
+id_usuario int AI PK; nombre varchar(100); apellido varchar(100)?; correo varchar(150) UNIQUE; contrasena_hash varchar(255); rol varchar(20); estado varchar(20); fecha_registro datetime(6); ultimo_acceso timestamp?; id_institucion int?; id_rol int?.
+FK: institucion y rol; ON DELETE SET NULL.
+
+Indices: 31 en total, incluidos 13 PK; hay 6 indices unicos secundarios (roles.nombre, usuarios.correo, y los codigos/id_usuario de estudiantes y docentes). No hay restricciones CHECK. Las 14 FK fisicas corresponden a relaciones declaradas por TypeORM en estas tablas.
+
+5. MATRIZ DE CORRESPONDENCIA
+
+ER se refiere a los nombres explicitamente senalados en el encargo; la correspondencia completa de atributos/cardinalidades del PDF queda pendiente.
+
+USUARIO_ROL: TypeORM no; MySQL no. Estado: FALTA EN TYPEORM y tambien en MySQL.
+USUARIO / usuarios: TypeORM si; MySQL si. Estado: DIFERENCIA DE RELACION respecto a USUARIO_ROL; revisar duplicidad de rol.
+ROL / roles: TypeORM si; MySQL si. Estado: pendiente validar cardinalidad y campos del ER.
+INSTITUCION / instituciones: TypeORM si; MySQL si. Estado: DIFERENCIA DE ATRIBUTOS; faltan nit y ciudad.
+ESTUDIANTE / estudiantes: TypeORM si; MySQL si. Estado: DIFERENCIA DE ATRIBUTOS/RELACION; faltan id_grado, fecha_ingreso y relacion con grado.
+DOCENTES / docentes: TypeORM si; MySQL si. Estado: pendiente validar todos los atributos del ER.
+GRADO / grados: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+ASIGNATURA / asignaturas: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+UNIDAD_TEMATICA / unidades_tematicas: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+TEMA / temas: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+CURSO / cursos: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+INSCRIPCION / inscripciones: TypeORM si; MySQL si. Estado: pendiente validar atributos/cardinalidades del ER.
+HORARIO_CURSO / horarios_curso: TypeORM si; MySQL si. Estado: pendiente validar atributos/cardinalidades del ER.
+COMPETENCIA / competencias: TypeORM si; MySQL si. Estado: pendiente validar cardinalidades/detalles del diagrama.
+PROGRESO_COMPETENCIA / progreso_competencias: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+ACTIVIDAD / actividades: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+NIVEL_ACTIVIDAD / niveles_actividad: TypeORM si; MySQL no. Estado: FALTA EN MYSQL; cardinalidad con actividad pendiente.
+ACTIVIDAD_CURSO / actividades_curso: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+ACTIVIDAD_COMPETENCIA / actividades_competencias: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+PROBLEMA / problemas: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+OPCION_RESPUESTA / opciones_respuesta: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+RUBRICA / rubricas: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+CRITERIO_RUBRICA / criterios_rubrica: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+EVALUACION / evaluaciones: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+EVALUACION_CRITERIO / evaluaciones_criterios: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+INTENTO_ACTIVIDAD / intentos_actividad: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+RESPUESTA_INTENTO / respuestas_intento: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+PERFIL_GAMIFICACION / perfiles_gamificacion: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+TRANSACCION_PUNTO / transacciones_puntos: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+INSIGNIA / insignias: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+ESTUDIANTE_INSIGNIA / estudiantes_insignias: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+REPORTE / reportes: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+SPRINT / sprints: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+HISTORIA_USUARIO / historias_usuario: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+TAREA / tareas: TypeORM si; MySQL no. Estado: FALTA EN MYSQL.
+
+Ademas, TypeORM define las uniones automaticas competencias_asignaturas y actividades_niveles; ambas faltan en MySQL. No encontre tablas fisicas adicionales sin correspondencia con TypeORM.
+
+6. DIFERENCIAS Y PROBLEMAS ENCONTRADOS
+
+1. USUARIO_ROL no esta implementada. TypeORM y MySQL modelan usuarios.id_rol como FK nullable hacia un rol, es decir, un usuario tiene como maximo un rol en esa relacion. Tambien existe usuarios.rol, un texto que puede duplicar el rol. Si el ER exige una relacion N:M mediante USUARIO_ROL, la estructura actual no la representa. La cardinalidad y las claves de la tabla asociativa deben confirmarse en el diagrama antes de disenar la migracion.
+
+2. Faltan atributos de institucion y estudiante. Los campos senalados nit, ciudad, id_grado y fecha_ingreso no aparecen en las entidades ni tablas actuales. En particular, el estudiante no tiene FK a grado; su grado solo se alcanza indirectamente a traves de cursos e inscripciones.
+
+3. Faltan 23 tablas fisicas. Son 21 tablas de entidades registradas y dos tablas de union implicitas. No se ejecuto ni se genero una migracion.
+
+4. La cardinalidad Actividad-Nivel no se puede validar. TypeORM implementa @ManyToMany y espera actividades_niveles. El PDF no permite determinar con seguridad si el ER requiere N:M o una relacion directa 1:N.
+
+5. Integridad entre institucion y grado del curso. cursos.id_institucion y cursos.id_grado tienen FK independientes. La base no impide que un curso vincule una institucion con un grado perteneciente a otra; el ER legible no basta para decidir si esto contradice el diseno aprobado.
+
+6. Reglas de duplicados en insignias. TypeORM declara UNIQUE estudiante-insignia-curso, pero estudiantes_insignias no existe en MySQL. Ademas, la relacion con curso parece nullable; MySQL permite multiples valores NULL en una clave unica, por lo que la restriccion podria no impedir duplicados cuando no hay curso asociado.
+
+7. Riesgo de sincronizacion automatica. El valor predeterminado de synchronize en src/app.module.ts puede alterar el esquema si ambas variables de control faltan en tiempo de ejecucion. No inicie el servidor.
+
+8. Migraciones versionadas. No encontre archivos de migracion ni configuracion/script de migraciones en el inventario revisado.
+
+7. ELEMENTOS FALTANTES
+
+Faltan en TypeORM:
+USUARIO_ROL; los atributos INSTITUCION.nit, INSTITUCION.ciudad, ESTUDIANTE.id_grado, ESTUDIANTE.fecha_ingreso y la relacion Estudiante-Grado.
+
+Faltan en MySQL:
+Las 21 tablas TypeORM listadas como ausentes en la matriz.
+
+Tablas de union automaticas faltantes:
+actividades_niveles, competencias_asignaturas.
+
+Pendiente del PDF:
+Atributos y cardinalidades completos, claves de USUARIO_ROL, relacion Actividad-Nivel y cualquier entidad adicional de integracion/analitica que no pueda identificarse con claridad.
+
+8. RELACIONES Y CARDINALIDADES
+
+TypeORM declara relaciones con destinos validos y las propiedades inversas definidas se resuelven al construir la metadata. En las 13 tablas existentes, las 14 FK fisicas y sus reglas ON DELETE coinciden con las relaciones TypeORM revisadas.
+
+Relaciones importantes ya declaradas en codigo: institucion-grado/curso, grado-curso, asignatura-unidad/curso, unidad-tema, curso-inscripcion/horario, usuario-institucion/rol, actividad-curso/problema/competencia y estudiante-inscripcion/progreso/insignias.
+
+Esto no demuestra que todas coincidan con el ER. En particular, quedan pendientes Usuario-Rol y Actividad-Nivel; Estudiante-Grado no esta modelada; y las FK de las entidades ausentes todavia no existen fisicamente en MySQL.
+
+9. PLAN DE CORRECCION RECOMENDADO
+
+1. Prioridad critica: confirmar desde una version legible del ER las cardinalidades y claves de USUARIO_ROL; decidir como conservar rol e id_rol sin perdida de datos.
+2. Prioridad critica: establecer una politica explicita para impedir sincronizacion accidental; no arrancar el backend con la configuracion actual sin revisar las variables de entorno.
+3. Prioridad alta: aprobar los tipos y nulabilidad de nit, ciudad, id_grado y fecha_ingreso; incorporar Estudiante-Grado segun el ER.
+4. Prioridad alta: preparar migraciones para tablas faltantes en orden de dependencias, empezando por asociaciones academicas y luego ABP, evaluacion, intentos, gamificacion, reportes y SCRUM.
+5. Prioridad media: confirmar las restricciones UNIQUE, indices y reglas referenciales con el diagrama; revisar la consistencia institucion-grado-curso y duplicados de insignias.
+6. Prioridad baja: incorporar pruebas de esquema/migracion despues de contar con autorizacion y un entorno de pruebas no productivo.
+
+10. PROPUESTA DE MIGRACIONES
+
+No se generaron ni ejecutaron migraciones. Orden sugerido, sujeto a validar el ER:
+
+1. Migracion de USUARIO_ROL y estrategia de transicion desde usuarios.rol/usuarios.id_rol.
+2. Migracion de columnas y relacion Estudiante-Grado; columnas de Institucion.
+3. Tablas de progreso de competencias y las relaciones N:M aprobadas.
+4. Catalogo ABP, niveles, actividades, problemas, opciones y asignaciones a cursos.
+5. Rubricas, criterios, evaluaciones e intentos/respuestas.
+6. Perfil, transacciones, insignias y asignaciones de insignias.
+7. Reportes y tablas SCRUM.
+8. Indices, restricciones unicas y reglas referenciales aprobadas.
+
+Antes de aplicarlas: crear una linea base de migraciones, respaldar el esquema y datos, y validar el plan en una copia de la base.
+
+11. CONCLUSION
+
+El backend tiene una metadata TypeORM que se construye correctamente y un nucleo de 13 tablas que coincide con las entidades correspondientes. Sin embargo, la base fisica cubre solo parte del modelo: faltan 21 tablas de entidades y dos uniones automaticas. Ademas, hay diferencias concretas en los atributos de estudiante e institucion y una discrepancia relevante en la representacion de roles.
+
+La correspondencia completa con el modelo aprobado no queda demostrada hasta confirmar el contenido ilegible del PDF, especialmente las cardinalidades y claves. No modifique archivos, configuracion, tablas ni registros; tampoco ejecute synchronize, migraciones ni operaciones de escritura.

@@ -4,12 +4,21 @@ import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { UserRole } from '../user-role/entities/user-role.entity';
+import { User } from '../user/entities/user.entity';
+
+type PublicRoleUser = Omit<
+  User,
+  'contrasena_hash' | 'rol' | 'userRoles'
+>;
 
 @Injectable()
 export class RoleService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepository: Repository<UserRole>,
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
@@ -34,6 +43,24 @@ export class RoleService {
   async findByNombre(nombre: string): Promise<Role | null> {
     return await this.roleRepository.findOne({
       where: { nombre },
+    });
+  }
+
+  async findUsers(id_rol: number): Promise<PublicRoleUser[]> {
+    await this.findOne(id_rol);
+    const assignments = await this.userRoleRepository.find({
+      where: { id_rol },
+      relations: { user: true },
+      order: { id_usuario: 'ASC' },
+    });
+    return assignments.map((assignment) => {
+      const {
+        contrasena_hash: _hash,
+        rol: _legacyRole,
+        userRoles: _userRoles,
+        ...user
+      } = assignment.user;
+      return user;
     });
   }
 

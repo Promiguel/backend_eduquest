@@ -5,9 +5,10 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { Role } from '../../role/entities/role.entity';
 import { Institution } from '../../institution/entities/institution.entity';
+import { UserRole } from '../../user-role/entities/user-role.entity';
 
 @Entity('usuarios')
 export class User {
@@ -33,15 +34,9 @@ export class User {
   @JoinColumn({ name: 'id_institucion' })
   institution?: Institution;
 
-  @ManyToOne(() => Role, (role) => role.users, {
-    nullable: true,
-    onDelete: 'SET NULL',
-  })
-  @JoinColumn({ name: 'id_rol' })
-  role?: Role;
-
+  // Legacy column retained until an explicitly authorized schema cleanup.
   @Column({ type: 'varchar', length: 20, default: 'estudiante' })
-  rol: string; // mantengo este campo para compatibilidad con la app actual
+  rol: string;
 
   @Column({ type: 'varchar', length: 20, default: 'activo' })
   estado: string;
@@ -51,4 +46,7 @@ export class User {
 
   @Column({ name: 'ultimo_acceso', type: 'timestamp', nullable: true })
   ultimo_acceso: Date;
+
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  userRoles: UserRole[];
 }

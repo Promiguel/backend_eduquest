@@ -1,0 +1,4023 @@
+{
+  "info": {
+    "_postman_id": "eduquest-functional-tests-2026",
+    "name": "EduQuest — Pruebas funcionales",
+    "description": "Colección construida desde los controladores y DTO del backend. Configura primero baseUrl, token y las variables de acceso. Los DELETE están protegidos por un pre-request script y solo se ejecutan si el ID fue guardado como creado por esta colección. No uses datos reales ni un entorno de producción.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "auth",
+          "item": [
+            {
+              "name": "POST /auth/login",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/auth/login",
+                "description": "Iniciar sesion y obtener JWT. Autenticacion: no requiere token. DTO LoginDto; campos requeridos: correo, password.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  const response = pm.response.json();",
+                      "  if (response.access_token) pm.environment.set('token', response.access_token);",
+                      "  if (response.user && response.user.id_usuario) pm.environment.set('id_usuario', String(response.user.id_usuario));",
+                      "  if (response.user && response.user.rol) pm.environment.set('rol_actual', response.user.rol);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /auth/profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/auth/profile",
+                "description": "Consultar el perfil autenticado\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "user",
+          "item": [
+            {
+              "name": "POST /user",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/user",
+                "description": "Crear registro\nAutenticación: Sí — administrador.\nDTO CreateUserDto. Campos: nombre (requerido), apellido (opcional), correo (requerido), password (requerido), rol (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"EduQuest QA {{$guid}}\",\n  \"apellido\": \"Pruebas\",\n  \"correo\": \"eduquest.qa.{{$guid}}@example.test\",\n  \"password\": \"{{newUserPassword}}\",\n  \"rol\": \"estudiante\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_usuario'] !== undefined) {",
+                      "        pm.environment.set('id_usuario', String(item['id_usuario']));",
+                      "        pm.environment.set('owned_user', String(item['id_usuario']));",
+                      "        if ('user' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_usuario']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST /user ? docente",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/user",
+                "description": "Crear registro\nAutenticación: Sí — administrador.\nDTO CreateUserDto. Campos: nombre (requerido), apellido (opcional), correo (requerido), password (requerido), rol (opcional).\nEjecutar después del usuario de pruebas estudiante; guarda también id_usuario_docente para crear el perfil docente.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"EduQuest QA docente {{$guid}}\",\n  \"apellido\": \"Pruebas\",\n  \"correo\": \"eduquest.qa.docente.{{$guid}}@example.test\",\n  \"password\": \"{{newUserPassword}}\",\n  \"rol\": \"docente\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_usuario'] !== undefined) {",
+                      "        pm.environment.set('id_usuario', String(item['id_usuario']));",
+                      "        pm.environment.set('owned_user', String(item['id_usuario']));",
+                      "        if ('user' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_usuario']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /user",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/user",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — administrador."
+              }
+            },
+            {
+              "name": "GET /user/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/user/{{id_usuario}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — administrador."
+              }
+            },
+            {
+              "name": "PUT /user/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/user/{{id_usuario}}",
+                "description": "Actualizar registro\nAutenticación: Sí — administrador.\nDTO UpdateUserDto. Campos: nombre (opcional), apellido (opcional), correo (opcional), password (opcional), rol (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"EduQuest QA actualizado {{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "role",
+          "item": [
+            {
+              "name": "POST /role",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/role",
+                "description": "Crear registro\nAutenticación: Sí — administrador.\nDTO CreateRoleDto. Campos: nombre (requerido), descripcion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"eduquest_qa_{{$guid}}\",\n  \"descripcion\": \"Rol temporal de pruebas\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_rol'] !== undefined) {",
+                      "        pm.environment.set('id_rol', String(item['id_rol']));",
+                      "        pm.environment.set('owned_role', String(item['id_rol']));",
+                      "        if ('role' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_rol']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /role",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/role",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — administrador."
+              }
+            },
+            {
+              "name": "GET /role/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/role/{{id_rol}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — administrador."
+              }
+            },
+            {
+              "name": "GET /role/nombre/:nombre",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/role/nombre/{{nombre}}",
+                "description": "Buscar por nombre\nAutenticación: Sí — administrador."
+              }
+            },
+            {
+              "name": "PUT /role/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/role/{{id_rol}}",
+                "description": "Actualizar registro\nAutenticación: Sí — administrador.\nDTO UpdateRoleDto. Campos: nombre (opcional), descripcion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Actualización de prueba\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /role/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/role/{{id_rol}}",
+                "description": "Eliminar registro\nAutenticación: Sí — administrador.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_role');",
+                      "const requested = pm.variables.replaceIn('{{id_rol}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_role.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Instituciones",
+      "item": [
+        {
+          "name": "institution",
+          "item": [
+            {
+              "name": "POST /institution",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/institution",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateInstitutionDto. Campos: nombre (requerido), direccion (opcional), telefono (opcional), correo (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Institución QA {{$guid}}\",\n  \"direccion\": \"Dirección de pruebas\",\n  \"telefono\": \"0000000000\",\n  \"correo\": \"qa.{{$guid}}@example.test\",\n  \"estado\": \"activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_institucion'] !== undefined) {",
+                      "        pm.environment.set('id_institucion', String(item['id_institucion']));",
+                      "        pm.environment.set('owned_institution', String(item['id_institucion']));",
+                      "        if ('institution' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_institucion']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /institution",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/institution",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /institution/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/institution/{{id_institucion}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /institution/nombre/:nombre",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/institution/nombre/{{nombre}}",
+                "description": "Buscar por nombre\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /institution/estado/:estado",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/institution/estado/{{estado}}",
+                "description": "Filtrar por estado\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /institution/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/institution/{{id_institucion}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateInstitutionDto. Campos: nombre (opcional), direccion (opcional), telefono (opcional), correo (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Institución QA actualizada {{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /institution/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/institution/{{id_institucion}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_institution');",
+                      "const requested = pm.variables.replaceIn('{{id_institucion}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_institution.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Estudiantes",
+      "item": [
+        {
+          "name": "student",
+          "item": [
+            {
+              "name": "POST /student",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/student",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateStudentDto. Campos: id_usuario (requerido), codigo_estudiante (opcional), carrera (opcional), semestre (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_usuario\": \"{{id_usuario_estudiante}}\",\n  \"codigo_estudiante\": \"QA-{{$guid}}\",\n  \"carrera\": \"Pruebas\",\n  \"semestre\": 1,\n  \"estado\": \"activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_estudiante'] !== undefined) {",
+                      "        pm.environment.set('id_estudiante', String(item['id_estudiante']));",
+                      "        pm.environment.set('owned_student', String(item['id_estudiante']));",
+                      "        if ('student' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_estudiante']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /student",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /student/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student/{{id_estudiante}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /student/usuario/:idUsuario",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student/usuario/{{idUsuario}}",
+                "description": "Buscar perfil por usuario\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /student/carrera/:carrera",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student/carrera/{{carrera}}",
+                "description": "Buscar estudiantes por carrera\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /student/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/student/{{id_estudiante}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateStudentDto. Campos: id_usuario (opcional), codigo_estudiante (opcional), carrera (opcional), semestre (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"carrera\": \"Pruebas actualizadas\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /student/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/student/{{id_estudiante}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_student');",
+                      "const requested = pm.variables.replaceIn('{{id_estudiante}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_student.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Docentes",
+      "item": [
+        {
+          "name": "teacher",
+          "item": [
+            {
+              "name": "POST /teacher",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/teacher",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateTeacherDto. Campos: id_usuario (requerido), codigo_docente (opcional), especialidad (opcional), titulo (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_usuario\": \"{{id_usuario_docente}}\",\n  \"codigo_docente\": \"DOC-QA-{{$guid}}\",\n  \"especialidad\": \"Pruebas\",\n  \"titulo\": \"Docente de pruebas\",\n  \"estado\": \"activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_docente'] !== undefined) {",
+                      "        pm.environment.set('id_docente', String(item['id_docente']));",
+                      "        pm.environment.set('owned_teacher', String(item['id_docente']));",
+                      "        if ('teacher' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_docente']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /teacher",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/teacher",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /teacher/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/teacher/{{id_docente}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /teacher/usuario/:idUsuario",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/teacher/usuario/{{idUsuario}}",
+                "description": "Buscar perfil por usuario\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /teacher/especialidad/:especialidad",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/teacher/especialidad/{{especialidad}}",
+                "description": "Buscar docentes por especialidad\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /teacher/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/teacher/{{id_docente}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateTeacherDto. Campos: id_usuario (opcional), codigo_docente (opcional), especialidad (opcional), titulo (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"especialidad\": \"Pruebas actualizadas\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /teacher/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/teacher/{{id_docente}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_teacher');",
+                      "const requested = pm.variables.replaceIn('{{id_docente}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_teacher.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gestión académica",
+      "item": [
+        {
+          "name": "grade",
+          "item": [
+            {
+              "name": "POST /grade",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/grade",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateGradeDto. Campos: nombre (requerido), nivel_educativo (opcional), tipo (opcional), nivel_esperado (opcional), id_institucion (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Grado QA {{$guid}}\",\n  \"nivel_educativo\": \"Secundaria\",\n  \"tipo\": \"regular\",\n  \"nivel_esperado\": \"básico\",\n  \"id_institucion\": \"{{id_institucion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_grado'] !== undefined) {",
+                      "        pm.environment.set('id_grado', String(item['id_grado']));",
+                      "        pm.environment.set('owned_grade', String(item['id_grado']));",
+                      "        if ('grade' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_grado']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /grade",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/grade?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_institucion, page, limit."
+              }
+            },
+            {
+              "name": "GET /grade/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/grade/{{id_grado}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /grade/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/grade/{{id_grado}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateGradeDto. Campos: nombre (opcional), nivel_educativo (opcional), tipo (opcional), nivel_esperado (opcional), id_institucion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Grado QA actualizado {{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /grade/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/grade/{{id_grado}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_grade');",
+                      "const requested = pm.variables.replaceIn('{{id_grado}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_grade.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "subject",
+          "item": [
+            {
+              "name": "POST /subject",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/subject",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateSubjectDto. Campos: nombre (requerido), descripcion (opcional), area (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Asignatura QA {{$guid}}\",\n  \"descripcion\": \"Asignatura temporal de pruebas\",\n  \"area\": \"Ciencias\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_asignatura'] !== undefined) {",
+                      "        pm.environment.set('id_asignatura', String(item['id_asignatura']));",
+                      "        pm.environment.set('owned_subject', String(item['id_asignatura']));",
+                      "        if ('subject' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_asignatura']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /subject",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/subject?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: area, page, limit."
+              }
+            },
+            {
+              "name": "GET /subject/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/subject/{{id_asignatura}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /subject/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/subject/{{id_asignatura}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateSubjectDto. Campos: nombre (opcional), descripcion (opcional), area (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Actualización QA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /subject/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/subject/{{id_asignatura}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_subject');",
+                      "const requested = pm.variables.replaceIn('{{id_asignatura}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_subject.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "thematic-unit",
+          "item": [
+            {
+              "name": "POST /thematic-unit",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/thematic-unit",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateThematicUnitDto. Campos: nombre (requerido), descripcion (opcional), orden (requerido), id_asignatura (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Unidad QA {{$guid}}\",\n  \"descripcion\": \"Unidad temporal de pruebas\",\n  \"orden\": 1,\n  \"id_asignatura\": \"{{id_asignatura}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_unidad'] !== undefined) {",
+                      "        pm.environment.set('id_unidad', String(item['id_unidad']));",
+                      "        pm.environment.set('owned_thematic_unit', String(item['id_unidad']));",
+                      "        if ('thematic-unit' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_unidad']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /thematic-unit",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/thematic-unit?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_asignatura, page, limit."
+              }
+            },
+            {
+              "name": "GET /thematic-unit/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/thematic-unit/{{id_unidad}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /thematic-unit/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/thematic-unit/{{id_unidad}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateThematicUnitDto; cuerpo de actualizacion parcial.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Unidad QA actualizada {{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /thematic-unit/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/thematic-unit/{{id_unidad}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_thematic_unit');",
+                      "const requested = pm.variables.replaceIn('{{id_unidad}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_thematic_unit.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "topic",
+          "item": [
+            {
+              "name": "POST /topic",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/topic",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateTopicDto. Campos: nombre (requerido), descripcion (opcional), orden (requerido), id_unidad (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Tema QA {{$guid}}\",\n  \"descripcion\": \"Tema temporal de pruebas\",\n  \"orden\": 1,\n  \"id_unidad\": \"{{id_unidad}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_tema'] !== undefined) {",
+                      "        pm.environment.set('id_tema', String(item['id_tema']));",
+                      "        pm.environment.set('owned_topic', String(item['id_tema']));",
+                      "        if ('topic' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_tema']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /topic",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/topic?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_unidad, page, limit."
+              }
+            },
+            {
+              "name": "GET /topic/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/topic/{{id_tema}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /topic/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/topic/{{id_tema}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateTopicDto. Campos: nombre (opcional), descripcion (opcional), orden (opcional), id_unidad (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Tema QA actualizado {{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /topic/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/topic/{{id_tema}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_topic');",
+                      "const requested = pm.variables.replaceIn('{{id_tema}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_topic.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "competence",
+          "item": [
+            {
+              "name": "POST /competence",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/competence",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateCompetenceDto. Campos: nombre (requerido), descripcion (opcional), tipo (opcional), nivel_esperado (opcional), id_asignaturas (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Competencia QA {{$guid}}\",\n  \"descripcion\": \"Competencia temporal de pruebas\",\n  \"tipo\": \"general\",\n  \"nivel_esperado\": \"inicial\",\n  \"id_asignaturas\": [\n    \"{{id_asignatura}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_competencia'] !== undefined) {",
+                      "        pm.environment.set('id_competencia', String(item['id_competencia']));",
+                      "        pm.environment.set('owned_competence', String(item['id_competencia']));",
+                      "        if ('competence' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_competencia']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /competence",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: tipo, id_asignatura, page, limit."
+              }
+            },
+            {
+              "name": "GET /competence/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence/{{id_competencia}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /competence/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/competence/{{id_competencia}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateCompetenceDto. Campos: nombre (opcional), descripcion (opcional), tipo (opcional), nivel_esperado (opcional), id_asignaturas (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Competencia QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /competence/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/competence/{{id_competencia}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_competence');",
+                      "const requested = pm.variables.replaceIn('{{id_competencia}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_competence.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "course",
+          "item": [
+            {
+              "name": "POST /course",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/course",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateCourseDto. Campos: nombre (requerido), codigo_acceso (opcional), periodo_academico (opcional), cupo_maximo (opcional), fecha_inicio (opcional), fecha_fin (opcional), estado (opcional), id_institucion (requerido), id_grado (requerido), id_asignatura (requerido), id_docente (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Curso QA {{$guid}}\",\n  \"codigo_acceso\": \"QA-{{$guid}}\",\n  \"periodo_academico\": \"2026-2027\",\n  \"cupo_maximo\": 30,\n  \"fecha_inicio\": \"2026-12-01\",\n  \"fecha_fin\": \"2027-06-30\",\n  \"estado\": \"activo\",\n  \"id_institucion\": \"{{id_institucion}}\",\n  \"id_grado\": \"{{id_grado}}\",\n  \"id_asignatura\": \"{{id_asignatura}}\",\n  \"id_docente\": \"{{id_docente}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_curso'] !== undefined) {",
+                      "        pm.environment.set('id_curso', String(item['id_curso']));",
+                      "        pm.environment.set('owned_course', String(item['id_curso']));",
+                      "        if ('course' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_curso']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/course?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_institucion, id_grado, id_asignatura, id_docente, id_estudiante, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /course/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/course/{{id_curso}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /course/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/course/{{id_curso}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateCourseDto. Campos: nombre (opcional), codigo_acceso (opcional), periodo_academico (opcional), cupo_maximo (opcional), fecha_inicio (opcional), fecha_fin (opcional), estado (opcional), id_institucion (opcional), id_grado (opcional), id_asignatura (opcional), id_docente (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /course/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/course/{{id_curso}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_course');",
+                      "const requested = pm.variables.replaceIn('{{id_curso}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_course.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "enrollment",
+          "item": [
+            {
+              "name": "POST /enrollment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/enrollment",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateEnrollmentDto. Campos: fecha_inicio (requerido), estado (opcional), nota_final_curso (opcional), id_estudiante (requerido), id_curso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fecha_inicio\": \"2026-12-01\",\n  \"estado\": \"activo\",\n  \"id_estudiante\": \"{{id_estudiante}}\",\n  \"id_curso\": \"{{id_curso}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_inscripcion'] !== undefined) {",
+                      "        pm.environment.set('id_inscripcion', String(item['id_inscripcion']));",
+                      "        pm.environment.set('owned_enrollment', String(item['id_inscripcion']));",
+                      "        if ('enrollment' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_inscripcion']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /enrollment",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/enrollment?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_estudiante, id_curso, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /enrollment/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/enrollment/{{id_inscripcion}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /enrollment/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/enrollment/{{id_inscripcion}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateEnrollmentDto. Campos: fecha_inicio (opcional), estado (opcional), nota_final_curso (opcional), id_estudiante (opcional), id_curso (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /enrollment/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/enrollment/{{id_inscripcion}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_enrollment');",
+                      "const requested = pm.variables.replaceIn('{{id_inscripcion}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_enrollment.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "course-schedule",
+          "item": [
+            {
+              "name": "POST /course-schedule",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/course-schedule",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateCourseScheduleDto. Campos: dia_semana (requerido), hora_inicio (requerido), hora_fin (requerido), aula (requerido), id_curso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dia_semana\": \"lunes\",\n  \"hora_inicio\": \"08:00\",\n  \"hora_fin\": \"09:00\",\n  \"aula\": \"QA-01\",\n  \"id_curso\": \"{{id_curso}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_horario'] !== undefined) {",
+                      "        pm.environment.set('id_horario', String(item['id_horario']));",
+                      "        pm.environment.set('owned_course_schedule', String(item['id_horario']));",
+                      "        if ('course-schedule' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_horario']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /course-schedule",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/course-schedule?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_curso, dia_semana, page, limit."
+              }
+            },
+            {
+              "name": "GET /course-schedule/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/course-schedule/{{id_horario}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /course-schedule/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/course-schedule/{{id_horario}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateCourseScheduleDto; cuerpo de actualizacion parcial.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aula\": \"QA-02\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /course-schedule/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/course-schedule/{{id_horario}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_course_schedule');",
+                      "const requested = pm.variables.replaceIn('{{id_horario}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_course_schedule.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Actividades y ABP",
+      "item": [
+        {
+          "name": "activity-level",
+          "item": [
+            {
+              "name": "POST /activity-level",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-level",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateActivityLevelDto. Campos: nombre (requerido), descripcion (opcional), numero_nivel (requerido), puntaje_nivel (requerido), orden (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Nivel QA {{$guid}}\",\n  \"descripcion\": \"Nivel temporal de pruebas\",\n  \"numero_nivel\": 1,\n  \"puntaje_nivel\": 10,\n  \"orden\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_nivel'] !== undefined) {",
+                      "        pm.environment.set('id_nivel', String(item['id_nivel']));",
+                      "        pm.environment.set('owned_activity_level', String(item['id_nivel']));",
+                      "        if ('activity-level' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_nivel']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /activity-level",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-level",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /activity-level/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-level/{{id_nivel}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /activity-level/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-level/{{id_nivel}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateActivityLevelDto; cuerpo de actualizacion parcial.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Nivel QA actualizado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /activity-level/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/activity-level/{{id_nivel}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_activity_level');",
+                      "const requested = pm.variables.replaceIn('{{id_nivel}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_activity_level.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "activity",
+          "item": [
+            {
+              "name": "POST /activity",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateActivityDto. Campos: nombre (requerido), descripcion (opcional), tipo (requerido), dificultad (requerido), tiempo_limite (opcional), intentos_maximos (opcional), objetivo_pedagogico (opcional), puntaje_maximo (requerido), estado (opcional), id_niveles (opcional), id_rubrica (opcional).\nRequiere que id_nivel ya está configurado; primero ejecutar activity-level.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Actividad QA {{$guid}}\",\n  \"descripcion\": \"Actividad temporal de pruebas\",\n  \"tipo\": \"cuestionario\",\n  \"dificultad\": \"media\",\n  \"puntaje_maximo\": 100,\n  \"id_niveles\": [\n    \"{{id_nivel}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_actividad'] !== undefined) {",
+                      "        pm.environment.set('id_actividad', String(item['id_actividad']));",
+                      "        pm.environment.set('owned_activity', String(item['id_actividad']));",
+                      "        if ('activity' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_actividad']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /activity",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: tipo, dificultad, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity/{{id_actividad}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /activity/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity/{{id_actividad}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateActivityDto. Campos: nombre (opcional), descripcion (opcional), tipo (opcional), dificultad (opcional), tiempo_limite (opcional), intentos_maximos (opcional), objetivo_pedagogico (opcional), puntaje_maximo (opcional), estado (opcional), id_niveles (opcional), id_rubrica (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Actividad QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /activity/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/activity/{{id_actividad}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_activity');",
+                      "const requested = pm.variables.replaceIn('{{id_actividad}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_activity.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "activity-course",
+          "item": [
+            {
+              "name": "POST /activity-course",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-course",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateActivityCourseDto. Campos: fecha_apertura (opcional), fecha_cierre (opcional), peso_evaluativo (requerido), estado (opcional), id_actividad (requerido), id_curso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"peso_evaluativo\": 10,\n  \"id_actividad\": \"{{id_actividad}}\",\n  \"id_curso\": \"{{id_curso}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_actividad_curso'] !== undefined) {",
+                      "        pm.environment.set('id_actividad_curso', String(item['id_actividad_curso']));",
+                      "        pm.environment.set('owned_activity_course', String(item['id_actividad_curso']));",
+                      "        if ('activity-course' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_actividad_curso']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /activity-course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-course?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, id_curso, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-course/course/:id_curso",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-course/course/{{id_curso}}?page=1&limit=10",
+                "description": "Consultar actividades por curso\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, id_curso, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-course/student/:id_estudiante/available",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-course/student/{{id_estudiante}}/available?page=1&limit=10",
+                "description": "Consultar actividades disponibles para estudiante inscrito\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, id_curso, estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-course/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-course/{{id_actividad_curso}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /activity-course/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-course/{{id_actividad_curso}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateActivityCourseDto; cuerpo de actualizacion parcial.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"peso_evaluativo\": 15\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /activity-course/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/activity-course/{{id_actividad_curso}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_activity_course');",
+                      "const requested = pm.variables.replaceIn('{{id_actividad_curso}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_activity_course.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "problem",
+          "item": [
+            {
+              "name": "POST /problem",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/problem",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateProblemDto. Campos: enunciado (requerido), contexto (opcional), nivel_dificultad (requerido), puntaje (requerido), orden (requerido), retroalimentacion_auto (opcional), id_actividad (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enunciado\": \"Problema QA {{$guid}}\",\n  \"contexto\": \"Contexto de pruebas\",\n  \"nivel_dificultad\": \"media\",\n  \"puntaje\": 10,\n  \"orden\": 1,\n  \"id_actividad\": \"{{id_actividad}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_problema'] !== undefined) {",
+                      "        pm.environment.set('id_problema', String(item['id_problema']));",
+                      "        pm.environment.set('owned_problem', String(item['id_problema']));",
+                      "        if ('problem' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_problema']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /problem",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/problem?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, page, limit."
+              }
+            },
+            {
+              "name": "GET /problem/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/problem/{{id_problema}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /problem/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/problem/{{id_problema}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateProblemDto. Campos: enunciado (opcional), contexto (opcional), nivel_dificultad (opcional), puntaje (opcional), orden (opcional), retroalimentacion_auto (opcional), id_actividad (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enunciado\": \"Problema QA actualizado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /problem/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/problem/{{id_problema}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_problem');",
+                      "const requested = pm.variables.replaceIn('{{id_problema}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_problem.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "answer-option",
+          "item": [
+            {
+              "name": "POST /answer-option",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/answer-option",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateAnswerOptionDto. Campos: texto_opcion (requerido), es_correcta (opcional), orden (requerido), id_problema (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"texto_opcion\": \"Opción correcta QA\",\n  \"es_correcta\": true,\n  \"orden\": 1,\n  \"id_problema\": \"{{id_problema}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_opcion'] !== undefined) {",
+                      "        pm.environment.set('id_opcion', String(item['id_opcion']));",
+                      "        pm.environment.set('owned_answer_option', String(item['id_opcion']));",
+                      "        if ('answer-option' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_opcion']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /answer-option",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/answer-option?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_problema, page, limit."
+              }
+            },
+            {
+              "name": "GET /answer-option/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/answer-option/{{id_opcion}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /answer-option/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/answer-option/{{id_opcion}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateAnswerOptionDto. Campos: texto_opcion (opcional), es_correcta (opcional), orden (opcional), id_problema (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"texto_opcion\": \"Opción QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /answer-option/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/answer-option/{{id_opcion}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_answer_option');",
+                      "const requested = pm.variables.replaceIn('{{id_opcion}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_answer_option.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "activity-competence",
+          "item": [
+            {
+              "name": "POST /activity-competence",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-competence",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateActivityCompetenceDto. Campos: id_actividad (requerido), id_competencia (requerido), peso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_actividad\": \"{{id_actividad}}\",\n  \"id_competencia\": \"{{id_competencia}}\",\n  \"peso\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  pm.environment.set('owned_activity_competence', [pm.variables.replaceIn('{{id_actividad}}'), pm.variables.replaceIn('{{id_competencia}}')].join(':'));",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /activity-competence",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-competence?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, id_competencia, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-competence/competence/:id_competencia",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-competence/competence/{{id_competencia}}?page=1&limit=10",
+                "description": "Consultar actividades por competencia\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad, id_competencia, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-competence/:id_actividad/:id_competencia",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-competence/{{id_actividad}}/{{id_competencia}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /activity-competence/:id_actividad/:id_competencia",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-competence/{{id_actividad}}/{{id_competencia}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateActivityCompetenceDto. Campos: peso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"peso\": 0.9\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /activity-competence/:id_actividad/:id_competencia",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/activity-competence/{{id_actividad}}/{{id_competencia}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_activity_competence');",
+                      "const requested = pm.variables.replaceIn('{{id_actividad}}') + ':' + pm.variables.replaceIn('{{id_competencia}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_activity_competence.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Evaluación",
+      "item": [
+        {
+          "name": "rubric",
+          "item": [
+            {
+              "name": "POST /rubric",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/rubric",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateRubricDto. Campos: nombre (requerido), descripcion (opcional), tipo (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Rúbrica QA {{$guid}}\",\n  \"descripcion\": \"Rúbrica temporal de pruebas\",\n  \"tipo\": \"analítica\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_rubrica'] !== undefined) {",
+                      "        pm.environment.set('id_rubrica', String(item['id_rubrica']));",
+                      "        pm.environment.set('owned_rubric', String(item['id_rubrica']));",
+                      "        if ('rubric' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_rubrica']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /rubric",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/rubric?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: tipo, page, limit."
+              }
+            },
+            {
+              "name": "GET /rubric/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/rubric/{{id_rubrica}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /rubric/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/rubric/{{id_rubrica}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateRubricDto. Campos: nombre (opcional), descripcion (opcional), tipo (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Rúbrica QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /rubric/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/rubric/{{id_rubrica}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_rubric');",
+                      "const requested = pm.variables.replaceIn('{{id_rubrica}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_rubric.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "rubric-criterion",
+          "item": [
+            {
+              "name": "POST /rubric-criterion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/rubric-criterion",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateRubricCriterionDto. Campos: nombre (requerido), descripcion (opcional), peso (requerido), puntaje (requerido), maximo (requerido), id_rubrica (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Criterio QA {{$guid}}\",\n  \"descripcion\": \"Criterio temporal de pruebas\",\n  \"peso\": 1,\n  \"puntaje\": 10,\n  \"maximo\": 10,\n  \"id_rubrica\": \"{{id_rubrica}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_criterio'] !== undefined) {",
+                      "        pm.environment.set('id_criterio', String(item['id_criterio']));",
+                      "        pm.environment.set('owned_rubric_criterion', String(item['id_criterio']));",
+                      "        if ('rubric-criterion' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_criterio']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /rubric-criterion",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/rubric-criterion?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_rubrica, page, limit."
+              }
+            },
+            {
+              "name": "GET /rubric-criterion/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/rubric-criterion/{{id_criterio}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /rubric-criterion/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/rubric-criterion/{{id_criterio}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateRubricCriterionDto; cuerpo de actualizacion parcial.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Criterio QA actualizado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /rubric-criterion/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/rubric-criterion/{{id_criterio}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_rubric_criterion');",
+                      "const requested = pm.variables.replaceIn('{{id_criterio}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_rubric_criterion.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "evaluation",
+          "item": [
+            {
+              "name": "POST /evaluation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/evaluation",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateEvaluationDto. Campos: id_actividad_curso (requerido), retroalimentacion_auto (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_actividad_curso\": \"{{id_actividad_curso}}\",\n  \"retroalimentacion_auto\": \"Evaluación de prueba\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_evaluacion'] !== undefined) {",
+                      "        pm.environment.set('id_evaluacion', String(item['id_evaluacion']));",
+                      "        pm.environment.set('owned_evaluation', String(item['id_evaluacion']));",
+                      "        if ('evaluation' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_evaluacion']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /evaluation",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_actividad_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /evaluation/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation/{{id_evaluacion}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "POST /evaluation/:id/recalculate",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation/{{id_evaluacion}}/recalculate",
+                "description": "Recalcular evaluación\nAutenticación: Sí — cualquier usuario autenticado.\nSin cuerpo; la accion usa el identificador de ruta."
+              }
+            },
+            {
+              "name": "PUT /evaluation/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/evaluation/{{id_evaluacion}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateEvaluationDto. Campos: nota_final (opcional), retroalimentacion_auto (opcional), retroalimentacion_docente (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"retroalimentacion_docente\": \"Retroalimentación QA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /evaluation/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation/{{id_evaluacion}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_evaluation');",
+                      "const requested = pm.variables.replaceIn('{{id_evaluacion}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_evaluation.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "evaluation-criterion",
+          "item": [
+            {
+              "name": "POST /evaluation-criterion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/evaluation-criterion",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateEvaluationCriterionDto. Campos: id_evaluacion (requerido), id_criterio (requerido), puntaje_asignado (requerido), observacion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_evaluacion\": \"{{id_evaluacion}}\",\n  \"id_criterio\": \"{{id_criterio}}\",\n  \"puntaje_asignado\": 8,\n  \"observacion\": \"Observación QA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  pm.environment.set('owned_evaluation_criterion', [pm.variables.replaceIn('{{id_evaluacion}}'), pm.variables.replaceIn('{{id_criterio}}')].join(':'));",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /evaluation-criterion",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation-criterion?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_evaluacion, page, limit."
+              }
+            },
+            {
+              "name": "GET /evaluation-criterion/:id_evaluacion/:id_criterio",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation-criterion/{{id_evaluacion}}/{{id_criterio}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /evaluation-criterion/:id_evaluacion/:id_criterio",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/evaluation-criterion/{{id_evaluacion}}/{{id_criterio}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateEvaluationCriterionDto. Campos: puntaje_asignado (opcional), observacion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"observacion\": \"Observación QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /evaluation-criterion/:id_evaluacion/:id_criterio",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/evaluation-criterion/{{id_evaluacion}}/{{id_criterio}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_evaluation_criterion');",
+                      "const requested = pm.variables.replaceIn('{{id_evaluacion}}') + ':' + pm.variables.replaceIn('{{id_criterio}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_evaluation_criterion.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "activity-attempt",
+          "item": [
+            {
+              "name": "POST /activity-attempt",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/activity-attempt",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateActivityAttemptDto. Campos: id_inscripcion (requerido), id_actividad_curso (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_inscripcion\": \"{{id_inscripcion}}\",\n  \"id_actividad_curso\": \"{{id_actividad_curso}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_intento'] !== undefined) {",
+                      "        pm.environment.set('id_intento', String(item['id_intento']));",
+                      "        pm.environment.set('owned_activity_attempt', String(item['id_intento']));",
+                      "        if ('activity-attempt' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_intento']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /activity-attempt",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_inscripcion, id_actividad_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-attempt/enrollment/:id_inscripcion/history",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt/enrollment/{{id_inscripcion}}/history?page=1&limit=10",
+                "description": "Operación findHistory\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_inscripcion, id_actividad_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-attempt/results/student/:id_estudiante",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt/results/student/{{id_estudiante}}?page=1&limit=10",
+                "description": "Consultar resultados por estudiante\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_inscripcion, id_actividad_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-attempt/results/activity-course/:id_actividad_curso",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt/results/activity-course/{{id_actividad_curso}}?page=1&limit=10",
+                "description": "Consultar resultados por actividad asignada\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_inscripcion, id_actividad_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /activity-attempt/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt/{{id_intento}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "POST /activity-attempt/:id/finish",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/activity-attempt/{{id_intento}}/finish",
+                "description": "Finalizar intento\nAutenticación: Sí — cualquier usuario autenticado.\nSin cuerpo; la accion usa el identificador de ruta."
+              }
+            }
+          ]
+        },
+        {
+          "name": "attempt-response",
+          "item": [
+            {
+              "name": "POST /attempt-response/attempt/:id_intento",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/attempt-response/attempt/{{id_intento}}",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateAttemptResponseDto. Campos: id_problema (requerido), id_opcion (opcional), respuesta_texto (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_problema\": \"{{id_problema}}\",\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_respuesta'] !== undefined) {",
+                      "        pm.environment.set('id_respuesta', String(item['id_respuesta']));",
+                      "        pm.environment.set('owned_attempt_response', String(item['id_respuesta']));",
+                      "        if ('attempt-response' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_respuesta']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /attempt-response",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/attempt-response?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_intento, page, limit."
+              }
+            },
+            {
+              "name": "GET /attempt-response/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/attempt-response/{{id_respuesta}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "DELETE /attempt-response/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/attempt-response/{{id_respuesta}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_attempt_response');",
+                      "const requested = pm.variables.replaceIn('{{id_respuesta}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_attempt_response.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gamificación",
+      "item": [
+        {
+          "name": "gamification-profile",
+          "item": [
+            {
+              "name": "GET /gamification-profile/ranking",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/gamification-profile/ranking",
+                "description": "Consultar ranking general\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /gamification-profile/ranking/course/:id_curso",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/gamification-profile/ranking/course/{{id_curso}}",
+                "description": "Consultar ranking por curso\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /gamification-profile/:id_estudiante",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/gamification-profile/{{id_estudiante}}",
+                "description": "Operación findByStudent\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            }
+          ]
+        },
+        {
+          "name": "point-transaction",
+          "item": [
+            {
+              "name": "POST /point-transaction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/point-transaction",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreatePointTransactionDto. Campos: id_estudiante (requerido), tipo_transaccion (requerido), monto (requerido), descripcion (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_estudiante\": \"{{id_estudiante}}\",\n  \"tipo_transaccion\": \"SUMA\",\n  \"monto\": 10,\n  \"descripcion\": \"Transacción temporal QA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_transaccion'] !== undefined) {",
+                      "        pm.environment.set('id_transaccion', String(item['id_transaccion']));",
+                      "        pm.environment.set('owned_point_transaction', String(item['id_transaccion']));",
+                      "        if ('point-transaction' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_transaccion']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /point-transaction",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/point-transaction?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_estudiante, id_perfil, page, limit."
+              }
+            },
+            {
+              "name": "GET /point-transaction/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/point-transaction/{{id_transaccion}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            }
+          ]
+        },
+        {
+          "name": "badge",
+          "item": [
+            {
+              "name": "POST /badge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/badge",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateBadgeDto. Campos: nombre (requerido), descripcion (opcional), imagen_url (opcional), tipo (requerido), criterio_obtencion (requerido), puntos_asociados (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Insignia QA {{$guid}}\",\n  \"descripcion\": \"Insignia temporal de pruebas\",\n  \"tipo\": \"logro\",\n  \"criterio_obtencion\": {\n    \"tipo\": \"PUNTOS_ACUMULADOS\",\n    \"cantidad\": 100\n  },\n  \"puntos_asociados\": 10\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_insignia'] !== undefined) {",
+                      "        pm.environment.set('id_insignia', String(item['id_insignia']));",
+                      "        pm.environment.set('owned_badge', String(item['id_insignia']));",
+                      "        if ('badge' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_insignia']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /badge",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/badge",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /badge/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/badge/{{id_insignia}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /badge/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/badge/{{id_insignia}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateBadgeDto. Campos: nombre (opcional), descripcion (opcional), imagen_url (opcional), tipo (opcional), criterio_obtencion (opcional), puntos_asociados (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Insignia QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /badge/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/badge/{{id_insignia}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_badge');",
+                      "const requested = pm.variables.replaceIn('{{id_insignia}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_badge.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "student-badge",
+          "item": [
+            {
+              "name": "POST /student-badge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/student-badge",
+                "description": "Asignar insignia a estudiante\nAutenticación: Sí — cualquier usuario autenticado.\nDTO AwardStudentBadgeDto. Campos: id_estudiante (requerido), id_insignia (requerido), id_curso (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_estudiante\": \"{{id_estudiante}}\",\n  \"id_insignia\": \"{{id_insignia}}\",\n  \"id_curso\": \"{{id_curso}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  pm.environment.set('owned_student_badge', [pm.variables.replaceIn('{{id_estudiante}}'), pm.variables.replaceIn('{{id_insignia}}'), pm.variables.replaceIn('{{id_curso}}')].join(':'));",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /student-badge",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student-badge?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_estudiante, id_insignia, id_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /student-badge/student/:id_estudiante",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/student-badge/student/{{id_estudiante}}",
+                "description": "Operación findByStudent\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Seguimiento",
+      "item": [
+        {
+          "name": "competence-progress",
+          "item": [
+            {
+              "name": "POST /competence-progress",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/competence-progress",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateCompetenceProgressDto. Campos: id_estudiante (requerido), id_competencia (requerido), nivel_alcanzado (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_estudiante\": \"{{id_estudiante}}\",\n  \"id_competencia\": \"{{id_competencia}}\",\n  \"nivel_alcanzado\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_progreso'] !== undefined) {",
+                      "        pm.environment.set('id_progreso', String(item['id_progreso']));",
+                      "        pm.environment.set('owned_competence_progress', String(item['id_progreso']));",
+                      "        if ('competence-progress' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_progreso']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /competence-progress",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence-progress?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_estudiante, id_competencia, id_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /competence-progress/student/:id_estudiante/competencies",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence-progress/student/{{id_estudiante}}/competencies?page=1&limit=10",
+                "description": "Consultar competencias desarrolladas y pendientes\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_estudiante, id_competencia, id_curso, page, limit."
+              }
+            },
+            {
+              "name": "GET /competence-progress/student/:id_estudiante",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence-progress/student/{{id_estudiante}}",
+                "description": "Consultar progreso por estudiante\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /competence-progress/course/:id_curso",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/competence-progress/course/{{id_curso}}",
+                "description": "Consultar progreso por curso\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /competence-progress/student/:id_estudiante/competence/:id_competencia",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/competence-progress/student/{{id_estudiante}}/competence/{{id_competencia}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateCompetenceProgressDto. Campos: nivel_alcanzado (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nivel_alcanzado\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "report",
+          "item": [
+            {
+              "name": "POST /report/generate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/report/generate",
+                "description": "Operación generate\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateReportDto. Campos: tipo_reporte (requerido), id_curso (opcional), id_estudiante (opcional), id_docente (opcional), parametros (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_reporte\": \"PROGRESO\",\n  \"id_estudiante\": \"{{id_estudiante}}\",\n  \"parametros\": {\n    \"origen\": \"Postman QA\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_reporte'] !== undefined) {",
+                      "        pm.environment.set('id_reporte', String(item['id_reporte']));",
+                      "        pm.environment.set('owned_report', String(item['id_reporte']));",
+                      "        if ('report' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_reporte']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /report",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/report?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: tipo_reporte, id_curso, id_estudiante, id_docente, page, limit."
+              }
+            },
+            {
+              "name": "GET /report/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/report/{{id_reporte}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "POST /report/:id/archive",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": "{{baseUrl}}/report/{{id_reporte}}/archive",
+                "description": "Archivar reporte\nAutenticación: Sí — cualquier usuario autenticado.\nSin cuerpo; la accion usa el identificador de ruta."
+              }
+            },
+            {
+              "name": "DELETE /report/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/report/{{id_reporte}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_report');",
+                      "const requested = pm.variables.replaceIn('{{id_reporte}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_report.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gestión SCRUM",
+      "item": [
+        {
+          "name": "sprint",
+          "item": [
+            {
+              "name": "POST /sprint",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/sprint",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateSprintDto. Campos: nombre (requerido), objetivo (opcional), fecha_inicio (requerido), fecha_fin (requerido), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Sprint QA {{$guid}}\",\n  \"objetivo\": \"Validar flujos de prueba\",\n  \"fecha_inicio\": \"2026-12-01\",\n  \"fecha_fin\": \"2026-12-14\",\n  \"estado\": \"planificado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_sprint'] !== undefined) {",
+                      "        pm.environment.set('id_sprint', String(item['id_sprint']));",
+                      "        pm.environment.set('owned_sprint', String(item['id_sprint']));",
+                      "        if ('sprint' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_sprint']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /sprint",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/sprint?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: estado, page, limit."
+              }
+            },
+            {
+              "name": "GET /sprint/:id/historias",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/sprint/{{id_sprint}}/historias",
+                "description": "Consultar historias del sprint\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /sprint/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/sprint/{{id_sprint}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /sprint/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/sprint/{{id_sprint}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateSprintDto. Campos: nombre (opcional), objetivo (opcional), fecha_inicio (opcional), fecha_fin (opcional), estado (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"objetivo\": \"Objetivo QA actualizado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /sprint/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/sprint/{{id_sprint}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_sprint');",
+                      "const requested = pm.variables.replaceIn('{{id_sprint}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_sprint.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "user-story",
+          "item": [
+            {
+              "name": "POST /user-story",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/user-story",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateUserStoryDto. Campos: codigo (requerido), descripcion (requerido), prioridad (opcional), criterios_aceptacion (opcional), estado (opcional), id_sprint (requerido).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"codigo\": \"US-QA-{{$guid}}\",\n  \"descripcion\": \"Como usuario de pruebas quiero validar el flujo\",\n  \"prioridad\": \"media\",\n  \"criterios_aceptacion\": \"La solicitud se procesa correctamente\",\n  \"estado\": \"pendiente\",\n  \"id_sprint\": \"{{id_sprint}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_historia'] !== undefined) {",
+                      "        pm.environment.set('id_historia', String(item['id_historia']));",
+                      "        pm.environment.set('owned_user_story', String(item['id_historia']));",
+                      "        if ('user-story' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_historia']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /user-story",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/user-story?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_sprint, estado, prioridad, page, limit."
+              }
+            },
+            {
+              "name": "GET /user-story/:id/tasks",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/user-story/{{id_historia}}/tasks",
+                "description": "Consultar tareas de historia\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "GET /user-story/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/user-story/{{id_historia}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /user-story/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/user-story/{{id_historia}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateUserStoryDto. Campos: codigo (opcional), descripcion (opcional), prioridad (opcional), criterios_aceptacion (opcional), estado (opcional), id_sprint (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Historia QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /user-story/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/user-story/{{id_historia}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_user_story');",
+                      "const requested = pm.variables.replaceIn('{{id_historia}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_user_story.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "scrum-task",
+          "item": [
+            {
+              "name": "POST /scrum-task",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/scrum-task",
+                "description": "Crear registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO CreateScrumTaskDto. Campos: titulo (requerido), descripcion (opcional), estado (opcional), prioridad (opcional), estimacion_horas (opcional), fecha_cierre (opcional), id_historia (requerido), id_sprint (requerido), id_responsable (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"titulo\": \"Tarea QA {{$guid}}\",\n  \"descripcion\": \"Tarea temporal de pruebas\",\n  \"estado\": \"pendiente\",\n  \"prioridad\": \"media\",\n  \"estimacion_horas\": 2,\n  \"id_historia\": \"{{id_historia}}\",\n  \"id_sprint\": \"{{id_sprint}}\",\n  \"id_responsable\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const response = pm.response.json();",
+                      "    const candidates = [response, response && response.data, response && response.reporte, response && response.user];",
+                      "    for (const item of candidates) {",
+                      "      if (item && item['id_tarea'] !== undefined) {",
+                      "        pm.environment.set('id_tarea', String(item['id_tarea']));",
+                      "        pm.environment.set('owned_scrum_task', String(item['id_tarea']));",
+                      "        if ('scrum-task' === 'user' && item.rol) pm.environment.set('id_usuario_' + item.rol, String(item['id_tarea']));",
+                      "        break;",
+                      "      }",
+                      "    }",
+                      "  } catch (error) { console.warn('No se pudo leer el ID de la respuesta para guardarlo en el entorno.'); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /scrum-task",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/scrum-task?page=1&limit=10",
+                "description": "Listar registros (con filtros cuando el DTO lo permite)\nAutenticación: Sí — cualquier usuario autenticado.\nFiltros/query DTO: id_responsable, id_sprint, id_historia, estado, prioridad, page, limit."
+              }
+            },
+            {
+              "name": "GET /scrum-task/:id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/scrum-task/{{id_tarea}}",
+                "description": "Consultar registro por identificador\nAutenticación: Sí — cualquier usuario autenticado."
+              }
+            },
+            {
+              "name": "PUT /scrum-task/:id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/scrum-task/{{id_tarea}}",
+                "description": "Actualizar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDTO UpdateScrumTaskDto. Campos: titulo (opcional), descripcion (opcional), estado (opcional), prioridad (opcional), estimacion_horas (opcional), fecha_cierre (opcional), id_historia (opcional), id_sprint (opcional), id_responsable (opcional).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Tarea QA actualizada\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /scrum-task/:id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/scrum-task/{{id_tarea}}",
+                "description": "Eliminar registro\nAutenticación: Sí — cualquier usuario autenticado.\nDestructivo: el pre-request script lo omite salvo que el ID coincida con un registro creado exitosamente por esta colección."
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const expected = pm.environment.get('owned_scrum_task');",
+                      "const requested = pm.variables.replaceIn('{{id_tarea}}');",
+                      "if (!expected || expected !== requested) {",
+                      "  console.warn('DELETE omitido: solo se permite borrar un registro creado por esta colecci?n y guardado en owned_scrum_task.');",
+                      "  pm.execution.skipRequest();",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
